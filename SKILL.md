@@ -55,6 +55,7 @@ python <skill>/scripts/ssh_exec.py --search 群晖 --put ./deploy.sh --put-dst /
 
 ## 边界情况
 
+- **存储位置被搬迁**：脚本按 Termora 官方顺序自动发现存储文件（`--file` 显式指定 > 环境变量 `TERMORA_BASE_DATA_DIR` > 默认 `~/.termora`），一般无需干预；全部落空时按报错信息排查（确认 Termora 能否打开主机列表、检查 Termora 启动参数 `-Dtermora.base-data-dir`）。
 - **Termora 正在运行**：存储文件可能被锁，脚本会自动复制到临时目录再解析，无需干预。
 - **主机没有保存凭据**（列表"认证"列显示 `-`）：告诉用户先在 Termora 里给这台机器保存账号密码/密钥，脚本无法登录。
 - **命令输出为空但退出码非 0**：先加 `2>&1` 重跑看 stderr，再判断是权限还是命令本身的问题。

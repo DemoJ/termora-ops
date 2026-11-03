@@ -15,6 +15,14 @@
 
 安装目录（`C:\Program Files\Termora\`）只有程序本体，`app\Termora.cfg` 可看版本号。
 
+### 存储位置解析顺序（源码 `Application.getBaseDataDir`，1.0.17 与最新版一致）
+
+1. 启动参数 `-Dtermora.base-data-dir=<路径>`（Termora 快捷方式/启动脚本里设置，外部脚本探测不到）
+2. 环境变量 `TERMORA_BASE_DATA_DIR`
+3. 默认 `~/.termora`
+
+存储被搬迁时 `.xd` 文件位于 `<数据目录>/storage/` 下，文件名仍为 `00000000000.xd`。本 skill 的两个脚本按同样顺序自动发现（`storage/` 下主文件名变化时取最新 `.xd` 兜底）；也可用 `--file` 显式指定。
+
 ## .xd 文件内部结构
 
 MapDB（JVM 嵌入式 KV 库）顺序存储 + 旧版本记录残留，无加密。三类业务记录都是完整 JSON 字符串，以 `{"id":"<32位hex>"` 开头：

@@ -25,7 +25,6 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from termora_hosts import (  # noqa: E402
-    DEFAULT_STORAGE,
     hosts_of,
     load_storage,
     parent_path,
@@ -240,7 +239,8 @@ def main() -> None:
     ap.add_argument("--put", metavar="LOCAL", help="上传本地文件 (配合 --put-dst)")
     ap.add_argument("--put-dst", required=False)
     ap.add_argument("--timeout", type=float, default=60, help="命令超时秒数 (默认 60)")
-    ap.add_argument("--file", default=DEFAULT_STORAGE, help="Termora 存储文件路径")
+    ap.add_argument("--file", default=None,
+                    help="Termora 存储文件路径 (默认自动发现: 环境变量 TERMORA_BASE_DATA_DIR > ~/.termora)")
     args = ap.parse_args()
 
     try:

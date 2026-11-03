@@ -27,6 +27,49 @@ DEFAULT_STORAGE = os.path.join(os.path.expanduser("~"), ".termora", "storage", "
 SECRET_FIELDS = ("password", "passphrase", "privateKey")
 
 
+def candidate_storages() -> list[str]:
+    """按 Termora 官方顺序 (Application.getBaseDataDir) 列出候选存储文件。
+
+    官方解析顺序: 启动参数 -Dtermora.base-data-dir (脚本探测不到, 只能靠 --file) >
+    环境变量 TERMORA_BASE_DATA_DIR > 默认 ~/.termora。
+    storage/ 下主文件名变化时 (新版 Termora 改名) 取最新的 .xd 兜底。
+    """
+    bases = []
+    env_dir = os.environ.get("TERMORA_BASE_DATA_DIR")
+    if env_dir:
+        bases.append(env_dir)
+    bases.append(os.path.join(os.path.expanduser("~"), ".termora"))
+    out: list[str] = []
+    for base in bases:
+        storage_dir = os.path.join(base, "storage")
+        preferred = os.path.join(storage_dir, "00000000000.xd")
+        if os.path.exists(preferred):
+            out.append(preferred)
+            continue
+        if os.path.isdir(storage_dir):
+            xd_files = [os.path.join(storage_dir, n) for n in os.listdir(storage_dir) if n.endswith(".xd")]
+            xd_files.sort(key=lambda p: os.path.getmtime(p) if os.path.exists(p) else 0, reverse=True)
+            out.extend(xd_files)
+    return out
+
+
+def resolve_storage(path: str | None = None) -> str:
+    """定位存储文件: --file 显式指定优先, 否则按官方顺序自动发现。"""
+    if path:
+        return path
+    candidates = candidate_storages()
+    if candidates:
+        return candidates[0]
+    tried = [DEFAULT_STORAGE]
+    env_dir = os.environ.get("TERMORA_BASE_DATA_DIR")
+    if env_dir:
+        tried.insert(0, os.path.join(env_dir, "storage", "00000000000.xd"))
+    sys.exit("[错误] 找不到 Termora 存储文件, 已尝试:\n  - " + "\n  - ".join(tried)
+             + "\n排查: 1) 确认 Termora 可正常打开且保存过主机; "
+               "2) 若存储位置被自定义 (启动参数 -Dtermora.base-data-dir 或环境变量 "
+               "TERMORA_BASE_DATA_DIR), 用 --file 指定 <数据目录>/storage/ 下的 .xd 文件")
+
+
 def read_storage(path: str) -> bytes:
     """读取存储文件; 被占用 (Termora 正在运行) 时复制到临时目录再读。"""
     try:
@@ -130,9 +173,9 @@ def build_paths(by_id: dict[str, dict]) -> dict[str, str]:
 
 def load_storage(path: str | None = None, include_deleted: bool = False):
     """返回 (records, paths): 去重后的全部记录 + 各记录的分组路径。"""
-    path = path or DEFAULT_STORAGE
+    path = resolve_storage(path)
     if not os.path.exists(path):
-        sys.exit(f"[错误] 找不到 Termora 存储文件: {path}")
+        sys.exit(f"[错误] 找不到 Termora 存储文件: {path} (可用 --file 指定实际路径)")
     records = iter_records(read_storage(path))
     by_id = latest_by_id(records, include_deleted)
     return by_id, build_paths(by_id)
@@ -272,7 +315,8 @@ def main() -> None:
     ap.add_argument("--show", metavar="NAME|ID", help="查看单条记录详情")
     ap.add_argument("--show-secrets", action="store_true", help="不打码敏感字段 (慎用, 勿回显到对话)")
     ap.add_argument("--include-deleted", action="store_true", help="包含已删除记录")
-    ap.add_argument("--file", default=DEFAULT_STORAGE, help="存储文件路径 (默认 ~/.termora/storage/00000000000.xd)")
+    ap.add_argument("--file", default=None,
+                    help="存储文件路径 (默认自动发现: 环境变量 TERMORA_BASE_DATA_DIR > ~/.termora)")
     args = ap.parse_args()
 
     if args.show:

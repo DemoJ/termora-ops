@@ -89,6 +89,7 @@ termora-ops/
 
 ## 兼容性说明
 
+- 存储位置被搬迁（环境变量 `TERMORA_BASE_DATA_DIR` 或启动参数 `-Dtermora.base-data-dir`）时，脚本按 Termora 官方顺序自动发现存储文件，无需额外配置。
 - 存储格式基于 **Termora 1.0.17 (Windows)** 实测；Termora 升级更换存储引擎（如出现 `.mv.db`/`.db` 文件）时脚本会解析异常，排查思路见 `references/termora-storage.md`。
 - 脚本兼容 Windows / Linux / macOS（venv 自举路径已做平台适配）；前提是 Termora 的存储位于 `~/.termora/storage/`。
 - 主机未在 Termora 中保存凭据时无法自动登录（列表"认证"列显示 `-`），请先在 Termora 里保存账号密码或密钥。
